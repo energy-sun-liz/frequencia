@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ADM - Painel Integrado de Visualização | FluxoTech</title>
+    <!-- Tailwind CSS para estilização moderna e rápida -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome para ícones expressivos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            dark: '#030712',
+                            card: '#0f172a',
+                            accent: '#deff9a',
+                            cyan: '#00f2fe',
+                            whatsapp: '#25d366',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Custom scrollbar para visual moderno */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #deff9a;
+        }
+        
+        /* Efeito de brilho de neon suave */
+        .neon-glow-cyan {
+            box-shadow: 0 0 15px rgba(0, 242, 254, 0.15);
+        }
+        .neon-glow-accent {
+            box-shadow: 0 0 15px rgba(222, 255, 154, 0.15);
+        }
+        .neon-glow-danger {
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.2);
+        }
+
+        /* Animação de pulso para simular tempo real */
+        @keyframes pulse-soft {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(0.98); }
+        }
+        .pulse-active {
+            animation: pulse-soft 2s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="bg-brand-dark text-slate-100 font-sans min-h-screen flex flex-col overflow-x-hidden">
+
+    <!-- BARRA SUPERIOR DE CONTROLE DA SIMULAÇÃO (Ideal para apresentar para a banca) -->
+    <div class="bg-slate-900 border-b border-slate-800 px-6 py-3 flex flex-wrap justify-between items-center gap-4 z-50">
+        <div class="flex items-center gap-3">
+            <span class="flex h-3 w-3 relative">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+            </span>
+            <div class="text-xs md:text-sm">
+                <span class="text-slate-400 font-medium">MODO DE APRESENTAÇÃO:</span>
+                <span class="text-brand-accent font-bold" id="simulation-status">Operação Normal (Criare S/A)</span>
+            </div>
+        </div>
+
+        <!-- CONTROLES INTERATIVOS RÁPIDOS -->
+        <div class="flex items-center gap-2">
+            <button onclick="resetSimulation()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 border border-slate-700">
+                <i class="fa-solid fa-rotate-left"></i> Reiniciar
+            </button>
+            <button onclick="triggerBriefing()" class="bg-brand-accent text-slate-950 font-bold text-xs px-4 py-1.5 rounded-lg hover:shadow-lg hover:shadow-brand-accent/20 transition-all flex items-center gap-1.5">
+                <i class="fa-solid fa-sun"></i> Simular Briefing Matinal (7h)
+            </button>
+            <button onclick="triggerAlertSimulation()" class="bg-red-500 hover:bg-red-600 text-white font-bold text-xs px-4 py-1.5 rounded-lg hover:shadow-lg hover:shadow-red-500/20 transition-all flex items-center gap-1.5">
+                <i class="fa-solid fa-triangle-exclamation"></i> Disparar Alerta Crítico (14h)
+            </button>
+        </div>
+    </div>
+
+    <!-- MAIN CONTAINER (SIDEBAR + CONTENT WORKSPACE) -->
+    <div class="flex-1 flex overflow-hidden">
+        
+        <!-- SIDEBAR DE NAVEGAÇÃO -->
+        <aside class="w-64 bg-slate-950 border-r border-slate-800/80 p-6 flex flex-col justify-between hidden md:flex">
+            <div>
+                <!-- Brand Header -->
+                <div class="mb-10">
+                    <div class="text-[10px] uppercase tracking-widest font-black text-brand-cyan">SAGA SENAI DE INOVAÇÃO</div>
+                    <h2 class="text-2xl font-extrabold text-white tracking-tight flex items-center gap-2">
+                        Projeto <span class="text-brand-accent">ADM</span>
+                    </h2>
+                    <span class="text-xs text-slate-500 font-semibold">Agente Diário de Metas</span>
+                </div>
+
+                <!-- Menu de Abas -->
+                <nav class="space-y-2">
+                    <button onclick="switchTab('dashboard')" id="btn-dashboard" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left text-sm font-semibold transition-all bg-brand-card text-brand-accent border-l-4 border-brand-accent">
+                        <i class="fa-solid fa-chart-line text-lg"></i> Dashboard do Projeto
+                    </button>
+                    <button onclick="switchTab('canvas')" id="btn-canvas" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left text-sm font-semibold text-slate-400 hover:text-white hover:bg-slate-900 transition-all">
+                        <i class="fa-solid fa-cubes text-lg"></i> Canvas do Negócio
+                    </button>
+                    <button onclick="switchTab('whatsapp')" id="btn-whatsapp" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left text-sm font-semibold text-slate-400 hover:text-white hover:bg-slate-900 transition-all">
+                        <i class="fa-brands fa-whatsapp text-lg"></i> WhatsApp Inteligente
+                    </button>
+                    <button onclick="switchTab('roteiro')" id="btn-roteiro" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left text-sm font-semibold text-slate-400 hover:text-white hover:bg-slate-900 transition-all">
+                        <i class="fa-solid fa-file-lines text-lg"></i> Roteiro de Pitch
+                    </button>
+                </nav>
+            </div>
+
+            <!-- Footer Sidebar / Detalhes da Equipe -->
+            <div class="bg-slate-900/60 p-4 rounded-2xl border border-slate-800">
+                <div class="text-xs text-slate-400 mb-1">Desenvolvido por:</div>
+                <div class="text-xs font-bold text-white mb-2">🚀 FluxoTech</div>
+                <div class="text-[10px] text-slate-500">Parceria Criare, SENAI & FUNCAP - Edital 07/2026</div>
+            </div>
+        </aside>
+
+        <!-- ESPAÇO DE CONTEÚDO PRINCIPAL (WORKSPACE) -->
+        <main class="flex-1 overflow-y-auto p-4 md:p-8 bg-brand-dark">
+            
+            <!-- ABAS MOBILE (Visíveis apenas em telas pequenas) -->
+            <div class="flex md:hidden bg-slate-950 p-2 rounded-xl border border-slate-800 gap-1 mb-6 overflow-x-auto">
+                <button onclick="switchTab('dashboard')" class="px-3 py-2 text-xs font-bold rounded-lg whitespace-nowrap bg-brand-card text-brand-accent" id="m-btn-dashboard">Dashboard</button>
+                <button onclick="switchTab('canvas')" class="px-3 py-2 text-xs font-bold rounded-lg whitespace-nowrap text-slate-400" id="m-btn-canvas">Canvas</button>
+                <button onclick="switchTab('whatsapp')" class="px-3 py-2 text-xs font-bold rounded-lg whitespace-nowrap text-slate-400" id="m-btn-whatsapp">WhatsApp</button>
+                <button onclick="switchTab('roteiro')" class="px-3 py-2 text-xs font-bold rounded-lg whitespace-nowrap text-slate-400" id="m-btn-roteiro">Pitch</button>
+            </div>
+
+            <!-- ================= ABA: DASHBOARD EXEC-OPERACIONAL ================= -->
+            <section id="tab-dashboard" class="space-y-6">
+                <!-- Header Abas -->
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <h3 class="text-2xl font-bold text-white flex items-center gap-2">
+                            Painel Operacional ADM
+                            <span class="text-xs font-bold bg-brand-cyan/20 text-brand-cyan px-2.5 py-1 rounded-full uppercase tracking-wider">Tempo Real</span>
+                        </h3>
+                        <p class="text-sm text-slate-400">Dados do chão de fábrica integrados do Google Sheets em tempo real via n8n.</p>
+                    </div>
+                    <div class="flex items-center gap-2 bg-slate-900 border border-slate-800 px-4 py-2 rounded-xl text-xs text-slate-400">
+                        <i class="fa-solid fa-server text-brand-cyan"></i>
+                        <span>CONEXÃO COM ERP: <strong class="text-emerald-400">ATIVO (0% ATRASO)</strong></span>
+                    </div>
+                </div>
+
+                <!-- CARDS DE METRICAS PRINCIPAIS (KPIs) -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    
+                    <!-- Faturamento -->
+                    <div class="bg-brand-card border border-slate-800 rounded-2xl p-5 hover:border-slate-700 transition-all relative overflow-hidden group">
+                        <div class="absolute right-4 top-4 text-brand-cyan text-xl opacity-35 group-hover:scale-110 transition-all">
+                            <i class="fa-solid fa-sack-dollar"></i>
+                        </div>
+                        <span class="text-xs text-slate-400 uppercase tracking-wider font-semibold">Faturamento de Hoje</span>
+                        <h4 class="text-3xl font-extrabold text-white mt-2" id="kpi-faturamento">R$ 45.200</h4>
+                        <p class="text-xs text-emerald-400 flex items-center gap-1 mt-2">
+                            <i class="fa-solid fa-caret-up"></i> 
+                            <span>+12.4% acima da meta ideal</span>
+                        </p>
+                    </div>
+
+                    <!-- Custos Operacionais -->
+                    <div id="card-custos" class="bg-brand-card border border-slate-800 rounded-2xl p-5 hover:border-slate-700 transition-all relative overflow-hidden group">
+                        <div class="absolute right-4 top-4 text-brand-accent text-xl opacity-35 group-hover:scale-110 transition-all">
+                            <i class="fa-solid fa-chart-pie"></i>
+                        </div>
+                        <span class="text-xs text-slate-400 uppercase tracking-wider font-semibold">Custo Operacional Total</span>
+                        <h4 class="text-3xl font-extrabold text-white mt-2" id="kpi-custos">R$ 38.150</h4>
+                        <p class="text-xs text-emerald-400 flex items-center gap-1 mt-2" id="kpi-custos-sub">
+                            <i class="fa-solid fa-circle-check"></i> 
+                            <span>Dentro da meta projetada</span>
+                        </p>
+                    </div>
+
+                    <!-- Lucro Líquido Estimado -->
+                    <div class="bg-brand-card border border-slate-800 rounded-2xl p-5 hover:border-slate-700 transition-all relative overflow-hidden group">
+                        <div class="absolute right-4 top-4 text-emerald-400 text-xl opacity-35 group-hover:scale-110 transition-all">
+                            <i class="fa-solid fa-circle-dollar-to-slot"></i>
+                        </div>
+                        <span class="text-xs text-slate-400 uppercase tracking-wider font-semibold">Lucro Operacional Líquido</span>
+                        <h4 class="text-3xl font-extrabold text-emerald-400 mt-2" id="kpi-lucro">R$ 7.050</h4>
+                        <p class="text-xs text-emerald-400 flex items-center gap-1 mt-2">
+                            <i class="fa-solid fa-caret-up"></i> 
+                            <span>Margem de 15.6%</span>
+                        </p>
+                    </div>
+
+                    <!-- Atingimento da Meta Global -->
+                    <div id="card-meta" class="bg-brand-card border border-slate-800 rounded-2xl p-5 hover:border-slate-700 transition-all relative overflow-hidden group">
+                        <div class="absolute right-4 top-4 text-yellow-400 text-xl opacity-35 group-hover:scale-110 transition-all">
+                            <i class="fa-solid fa-bullseye"></i>
+                        </div>
+                        <span class="text-xs text-slate-400 uppercase tracking-wider font-semibold">Atingimento da Meta</span>
+                        <h4 class="text-3xl font-extrabold text-white mt-2" id="kpi-meta">92.4%</h4>
+                        <div class="w-full bg-slate-800 h-2 rounded-full mt-3 overflow-hidden">
+                            <div class="bg-brand-accent h-full transition-all duration-500" style="width: 92.4%" id="progress-meta"></div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- SEÇÃO SPLIT: CHÃO DE FÁBRICA VS ANALYTICS DE CUSTOS -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    
+                    <!-- Monitor do Chão de Fábrica (2 Colunas) -->
+                    <div class="bg-brand-card border border-slate-800 rounded-2xl p-6 lg:col-span-2 space-y-6">
+                        <div class="flex justify-between items-center border-b border-slate-800 pb-4">
+                            <div>
+                                <h4 class="text-lg font-bold text-white flex items-center gap-2">
+                                    <i class="fa-solid fa-industry text-brand-cyan"></i>
+                                    Status das Linhas de Produção
+                                </h4>
+                                <p class="text-xs text-slate-500">Monitoramento ativo das injetoras e tecelagens</p>
+                            </div>
+                            <span class="text-xs bg-slate-800 text-slate-400 px-3 py-1 rounded-full font-bold">4 Linhas Ativas</span>
+                        </div>
+
+                        <!-- Lista de Injetoras/Máquinas -->
+                        <div class="space-y-4">
+                            <!-- Injetora 1 -->
+                            <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-800 flex flex-wrap justify-between items-center gap-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="bg-emerald-500/10 text-emerald-400 p-2.5 rounded-lg text-lg">
+                                        <i class="fa-solid fa-microchip"></i>
+                                    </div>
+                                    <div>
+                                        <h5 class="text-sm font-bold text-white">Injetora 1 - Plásticos & Detalhes</h5>
+                                        <p class="text-xs text-slate-400">Eficiência Operacional Global (OEE): <strong class="text-emerald-400">94.2%</strong></p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <div class="text-right hidden sm:block">
+                                        <span class="text-xs text-slate-400 block">Metas/Hora</span>
+                                        <span class="text-xs font-bold text-white">120 peças/hr</span>
+                                    </div>
+                                    <span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full">Operação OK</span>
+                                </div>
+                            </div>
+
+                            <!-- Injetora 2 (Gargalo de Horas Extras) -->
+                            <div id="row-injetora2" class="bg-slate-900/60 p-4 rounded-xl border border-slate-800 flex flex-wrap justify-between items-center gap-4 transition-all duration-300">
+                                <div class="flex items-center gap-3">
+                                    <div id="icon-injetora2" class="bg-emerald-500/10 text-emerald-400 p-2.5 rounded-lg text-lg">
+                                        <i class="fa-solid fa-microchip"></i>
+                                    </div>
+                                    <div>
+                                        <h5 class="text-sm font-bold text-white">Injetora 2 - Plásticos & Detalhes</h5>
+                                        <p class="text-xs text-slate-400" id="desc-injetora2">Eficiência Operacional Global (OEE): <strong class="text-emerald-400">88.5%</strong></p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <div class="text-right hidden sm:block">
+                                        <span class="text-xs text-slate-400 block">Metas/Hora</span>
+                                        <span class="text-xs font-bold text-white" id="meta-injetora2">115 peças/hr</span>
+                                    </div>
+                                    <span id="badge-injetora2" class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full">Operação OK</span>
+                                </div>
+                            </div>
+
+                            <!-- Tecelagem Principal -->
+                            <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-800 flex flex-wrap justify-between items-center gap-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="bg-emerald-500/10 text-emerald-400 p-2.5 rounded-lg text-lg">
+                                        <i class="fa-solid fa-scissors"></i>
+                                    </div>
+                                    <div>
+                                        <h5 class="text-sm font-bold text-white">Tecelagem Principal Criare</h5>
+                                        <p class="text-xs text-slate-400">Eficiência Operacional Global (OEE): <strong class="text-emerald-400">91.0%</strong></p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <div class="text-right hidden sm:block">
+                                        <span class="text-xs text-slate-400 block">Metas/Hora</span>
+                                        <span class="text-xs font-bold text-white">450 metros/hr</span>
+                                    </div>
+                                    <span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full">Operação OK</span>
+                                </div>
+                            </div>
+
+                            <!-- Costura e Acabamento -->
+                            <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-800 flex flex-wrap justify-between items-center gap-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="bg-emerald-500/10 text-emerald-400 p-2.5 rounded-lg text-lg">
+                                        <i class="fa-solid fa-shirt"></i>
+                                    </div>
+                                    <div>
+                                        <h5 class="text-sm font-bold text-white">Montagem, Costura e Acabamento</h5>
+                                        <p class="text-xs text-slate-400">Eficiência Operacional Global (OEE): <strong class="text-emerald-400">95.8%</strong></p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <div class="text-right hidden sm:block">
+                                        <span class="text-xs text-slate-400 block">Metas/Hora</span>
+                                        <span class="text-xs font-bold text-white">300 kits/hr</span>
+                                    </div>
+                                    <span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full">Operação OK</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Histórico e Alertas Dinâmicos -->
+                    <div class="bg-brand-card border border-slate-800 rounded-2xl p-6 flex flex-col justify-between">
+                        <div class="space-y-4">
+                            <div class="border-b border-slate-800 pb-4">
+                                <h4 class="text-lg font-bold text-white flex items-center gap-2">
+                                    <i class="fa-solid fa-bell text-brand-accent"></i>
+                                    Atividades do Dia
+                                </h4>
+                                <p class="text-xs text-slate-500">Últimas notificações enviadas pelo ADM</p>
+                            </div>
+
+                            <!-- Linha do Tempo / Logs do Dia -->
+                            <div class="space-y-4 max-h-[300px] overflow-y-auto pr-1" id="log-container">
+                                <!-- Log 1 -->
+                                <div class="flex gap-3 text-xs">
+                                    <div class="bg-slate-800 h-6 w-6 rounded-full flex items-center justify-center text-[10px] text-brand-cyan shrink-0">07h</div>
+                                    <div>
+                                        <p class="font-semibold text-white">Briefing Diário Enviado</p>
+                                        <p class="text-slate-500">Relatório matinal encaminhado para o WhatsApp de 4 gestores.</p>
+                                    </div>
+                                </div>
+                                <!-- Log 2 -->
+                                <div class="flex gap-3 text-xs">
+                                    <div class="bg-slate-800 h-6 w-6 rounded-full flex items-center justify-center text-[10px] text-emerald-400 shrink-0">10h</div>
+                                    <div>
+                                        <p class="font-semibold text-white">Sincronização Concluída</p>
+                                        <p class="text-slate-500">Planilhas do ERP integradas ao Hub Google Sheets sem erros.</p>
+                                    </div>
+                                </div>
+                                <!-- Log 3 -->
+                                <div class="flex gap-3 text-xs">
+                                    <div class="bg-slate-800 h-6 w-6 rounded-full flex items-center justify-center text-[10px] text-slate-400 shrink-0">12h</div>
+                                    <div>
+                                        <p class="font-semibold text-white">Análise Semanal Gerada</p>
+                                        <p class="text-slate-500">Insight opcional consolidado: "Custos de matéria-prima estáveis".</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Gráfico de Custo Operacional Simulado -->
+                        <div class="pt-4 border-t border-slate-800 mt-6">
+                            <span class="text-xs text-slate-400 block mb-2 font-semibold">Distribuição de Custo Operacional / Hora</span>
+                            <div class="flex items-end justify-between h-20 gap-1.5 pt-2">
+                                <div class="w-full bg-slate-800 rounded-t-sm h-[35%] transition-all" id="bar-chart-1"></div>
+                                <div class="w-full bg-slate-800 rounded-t-sm h-[50%] transition-all" id="bar-chart-2"></div>
+                                <div class="w-full bg-slate-800 rounded-t-sm h-[40%] transition-all" id="bar-chart-3"></div>
+                                <div class="w-full bg-slate-800 rounded-t-sm h-[60%] transition-all" id="bar-chart-4"></div>
+                                <div class="w-full bg-slate-800 rounded-t-sm h-[90%] transition-all" id="bar-chart-5"></div>
+                                <div class="w-full bg-slate-800 rounded-t-sm h-[55%] transition-all" id="bar-chart-6"></div>
+                                <div class="w-full bg-slate-800 rounded-t-sm h-[30%] transition-all" id="bar-chart-7"></div>
+                            </div>
+                            <div class="flex justify-between text-[10px] text-slate-500 mt-2">
+                                <span>07:00</span>
+                                <span>12:00</span>
+                                <span>17:00</span>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+
+            <!-- ================= ABA: CANVAS DO PROJETO ================= -->
+            <section id="tab-canvas" class="hidden space-y-6">
+                <div>
+                    <h3 class="text-2xl font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-cubes text-brand-accent"></i>
+                        Business Model Canvas: Projeto ADM
+                    </h3>
+                    <p class="text-sm text-slate-400">Modelo conceitual de inovação incremental para a Criare.</p>
+                </div>
+
+                <!-- GRADE INTERATIVA DO CANVAS DE MODELO DE NEGÓCIOS -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    
+                    <!-- Proposta de Valor -->
+                    <div class="bg-brand-card border border-slate-850 p-6 rounded-2xl hover:border-brand-cyan/40 transition-all space-y-3 cursor-pointer group">
+                        <div class="flex justify-between items-start">
+                            <span class="bg-brand-cyan/10 text-brand-cyan p-2.5 rounded-xl text-lg"><i class="fa-solid fa-award"></i></span>
+                            <span class="text-[10px] bg-slate-800 px-2 py-0.5 rounded text-slate-500 font-bold uppercase">Proposta de Valor</span>
+                        </div>
+                        <h4 class="text-base font-bold text-white group-hover:text-brand-cyan transition-all">Tomada de Decisão em Tempo Real</h4>
+                        <p class="text-xs text-slate-400 leading-relaxed">
+                            Substituição de relatórios mensais estáticos por monitoramento contínuo e proativo. A IA analisa e avisa sem que o gestor precise abrir sistemas complexos, direto no celular onde ele já trabalha todos os dias.
+                        </p>
+                    </div>
+
+                    <!-- Problema / Dor do Cliente -->
+                    <div class="bg-brand-card border border-slate-850 p-6 rounded-2xl hover:border-red-500/40 transition-all space-y-3 cursor-pointer group">
+                        <div class="flex justify-between items-start">
+                            <span class="bg-red-500/10 text-red-400 p-2.5 rounded-xl text-lg"><i class="fa-solid fa-triangle-exclamation"></i></span>
+                            <span class="text-[10px] bg-slate-800 px-2 py-0.5 rounded text-slate-500 font-bold uppercase">A Dor do Cliente</span>
+                        </div>
+                        <h4 class="text-base font-bold text-white group-hover:text-red-400 transition-all">"Voo Cego" Operacional</h4>
+                        <p class="text-xs text-slate-400 leading-relaxed">
+                            Decisões em mercados dinâmicos (têxtil) baseadas em dados atrasados de 5 a 8 dias. Custos de matéria-prima e horas extras demoram para ser identificados, gerando gargalos produtivos irreparáveis.
+                        </p>
+                    </div>
+
+                    <!-- Canais de Entrega -->
+                    <div class="bg-brand-card border border-slate-850 p-6 rounded-2xl hover:border-brand-accent/40 transition-all space-y-3 cursor-pointer group">
+                        <div class="flex justify-between items-start">
+                            <span class="bg-brand-accent/10 text-brand-accent p-2.5 rounded-xl text-lg"><i class="fa-solid fa-paper-plane"></i></span>
+                            <span class="text-[10px] bg-slate-800 px-2 py-0.5 rounded text-slate-500 font-bold uppercase">Canais de Entrega</span>
+                        </div>
+                        <h4 class="text-base font-bold text-white group-hover:text-brand-accent transition-all">WhatsApp & Microsoft Teams</h4>
+                        <p class="text-xs text-slate-400 leading-relaxed">
+                            Aproximação total com o usuário: notificações rápidas e consulta em linguagem natural utilizando a API do WhatsApp Business ou integrando com os canais de equipes do Microsoft Teams.
+                        </p>
+                    </div>
+
+                    <!-- Tecnologias (Arquitetura) -->
+                    <div class="bg-brand-card border border-slate-850 p-6 rounded-2xl hover:border-brand-cyan/40 transition-all space-y-3 cursor-pointer group">
+                        <div class="flex justify-between items-start">
+                            <span class="bg-brand-cyan/10 text-brand-cyan p-2.5 rounded-xl text-lg"><i class="fa-solid fa-network-wired"></i></span>
+                            <span class="text-[10px] bg-slate-800 px-2 py-0.5 rounded text-slate-500 font-bold uppercase">Arquitetura</span>
+                        </div>
+                        <h4 class="text-base font-bold text-white group-hover:text-brand-cyan transition-all">Hub Google Sheets -> n8n -> Gemini</h4>
+                        <p class="text-xs text-slate-400 leading-relaxed">
+                            Automação ágil baseada em Low-Code. O n8n unifica a coleta, calcula as métricas-chave diárias e consulta a IA do Gemini para gerar textos personalizados para os gestores.
+                        </p>
+                    </div>
+
+                    <!-- Pilares do Produto -->
+                    <div class="bg-brand-card border border-slate-850 p-6 rounded-2xl hover:border-brand-accent/40 transition-all space-y-3 cursor-pointer group">
+                        <div class="flex justify-between items-start">
+                            <span class="bg-brand-accent/10 text-brand-accent p-2.5 rounded-xl text-lg"><i class="fa-solid fa-list-check"></i></span>
+                            <span class="text-[10px] bg-slate-800 px-2 py-0.5 rounded text-slate-500 font-bold uppercase">Os 3 Pilares</span>
+                        </div>
+                        <h4 class="text-base font-bold text-white group-hover:text-brand-accent transition-all">Briefing, Alerta e Consulta</h4>
+                        <p class="text-xs text-slate-400 leading-relaxed">
+                            1. **Briefing Matinal (7h):** Resumo do dia anterior.<br>
+                            2. **Monitoramento Proativo:** Detecção imediata de anomalias.<br>
+                            3. **Consulta em Linguagem Natural:** Perguntas por texto ou áudio.
+                        </p>
+                    </div>
+
+                    <!-- Estrutura de Custos -->
+                    <div class="bg-brand-card border border-slate-850 p-6 rounded-2xl hover:border-emerald-500/40 transition-all space-y-3 cursor-pointer group">
+                        <div class="flex justify-between items-start">
+                            <span class="bg-emerald-500/10 text-emerald-400 p-2.5 rounded-xl text-lg"><i class="fa-solid fa-piggy-bank"></i></span>
+                            <span class="text-[10px] bg-slate-800 px-2 py-0.5 rounded text-slate-500 font-bold uppercase">Custos</span>
+                        </div>
+                        <h4 class="text-base font-bold text-white group-hover:text-emerald-400 transition-all">Baixo Custo Mensal de Rodagem</h4>
+                        <p class="text-xs text-slate-400 leading-relaxed">
+                            Custo de hospedagem em VPS (R$ 50 - 80), crédito de chamadas de API de IA (R$ 40 - 100) e taxas da API de disparos do WhatsApp. Custo total estimado entre R$ 110 - 230/mês.
+                        </p>
+                    </div>
+
+                    <!-- Diferenciais de Mercado -->
+                    <div class="bg-brand-card border border-slate-850 p-6 rounded-2xl hover:border-brand-cyan/40 transition-all space-y-3 cursor-pointer group">
+                        <div class="flex justify-between items-start">
+                            <span class="bg-brand-cyan/10 text-brand-cyan p-2.5 rounded-xl text-lg"><i class="fa-solid fa-star"></i></span>
+                            <span class="text-[10px] bg-slate-800 px-2 py-0.5 rounded text-slate-500 font-bold uppercase">Diferenciais</span>
+                        </div>
+                        <h4 class="text-base font-bold text-white group-hover:text-brand-cyan transition-all">Inovação Ativa e Não Reativa</h4>
+                        <p class="text-xs text-slate-400 leading-relaxed">
+                            Ao contrário dos ERPs que exigem análises manuais ou painéis de BI que esperam o usuário abrir e descobrir, o ADM entrega a resposta proativamente na mão do gestor no instante em que o problema surge.
+                        </p>
+                    </div>
+
+                    <!-- Modelo Comercial (SaaS) -->
+                    <div class="bg-brand-card border border-slate-850 p-6 rounded-2xl hover:border-brand-accent/40 transition-all space-y-3 cursor-pointer group">
+                        <div class="flex justify-between items-start">
+                            <span class="bg-brand-accent/10 text-brand-accent p-2.5 rounded-xl text-lg"><i class="fa-solid fa-handshake"></i></span>
+                            <span class="text-[10px] bg-slate-800 px-2 py-0.5 rounded text-slate-500 font-bold uppercase">Potencial de Mercado</span>
+                        </div>
+                        <h4 class="text-base font-bold text-white group-hover:text-brand-accent transition-all">Spin-off & Assinatura B2B</h4>
+                        <p class="text-xs text-slate-400 leading-relaxed">
+                            A mesma solução construída para a Criare serve para mais de 300 mil indústrias de pequeno e médio porte no país que carecem de equipes dedicadas de dados. Modelo de assinatura mensal SaaS escalável.
+                        </p>
+                    </div>
+
+                    <!-- Recursos Humanos (Equipe) -->
+                    <div class="bg-brand-card border border-slate-850 p-6 rounded-2xl hover:border-brand-cyan/40 transition-all space-y-3 cursor-pointer group">
+                        <div class="flex justify-between items-start">
+                            <span class="bg-brand-cyan/10 text-brand-cyan p-2.5 rounded-xl text-lg"><i class="fa-solid fa-users"></i></span>
+                            <span class="text-[10px] bg-slate-800 px-2 py-0.5 rounded text-slate-500 font-bold uppercase">Equipe</span>
+                        </div>
+                        <h4 class="text-base font-bold text-white group-hover:text-brand-cyan transition-all">Time Multidisciplinar FluxoTech</h4>
+                        <p class="text-xs text-slate-400 leading-relaxed">
+                            Competências integradas exigidas pelo Edital SAGA: Inteligência Artificial, Engenharia de Automação, Arquitetura de Dados em Nuvem, e Administração de Empresas.
+                        </p>
+                    </div>
+
+                </div>
+            </section>
+
+            <!-- ================= ABA: WHATSAPP MOCKUP INTERATIVO ================= -->
+            <section id="tab-whatsapp" class="hidden space-y-6">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <h3 class="text-2xl font-bold text-white flex items-center gap-2">
+                            <i class="fa-brands fa-whatsapp text-emerald-400"></i>
+                            Simulação do Canal do Gestor
+                        </h3>
+                        <p class="text-sm text-slate-400">Interaja com a IA do ADM enviando perguntas e vendo alertas proativos de erro de margem surgirem na tela.</p>
+                    </div>
+                </div>
+
+                <div class="max-w-md mx-auto">
+                    <!-- CELULAR DESIGN MOCKUP -->
+                    <div class="bg-slate-950 border-[10px] border-slate-800 rounded-[40px] shadow-2xl relative overflow-hidden h-[600px] flex flex-col">
+                        <!-- Head do Smartphone -->
+                        <div class="bg-slate-900 px-5 py-4 border-b border-slate-800 flex items-center gap-3">
+                            <div class="w-9 h-9 rounded-full bg-emerald-500/20 text-emerald-400 font-bold flex items-center justify-center text-sm border border-emerald-500/30">
+                                ADM
+                            </div>
+                            <div>
+                                <h5 class="text-sm font-bold text-white leading-tight">ADM - Agente de Metas</h5>
+                                <span class="text-[10px] text-emerald-400 flex items-center gap-1">
+                                    <span class="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                                    online
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Histórico do Chat do WhatsApp -->
+                        <div id="whatsapp-chat-container" class="flex-1 p-4 overflow-y-auto space-y-3 bg-[#0b141a]">
+                            <!-- Welcome -->
+                            <div class="max-w-[85%] bg-slate-900 rounded-2xl rounded-tl-none p-3 text-xs text-slate-100 leading-relaxed">
+                                Olá, Gestor da Criare! 👋 Eu sou o seu **Agente Diário de Metas (ADM)**.<br><br>
+                                Estou ativo monitorando as métricas e os insumos do dia. Use os botões no rodapé ou envie mensagens rápidas para avaliar custos.
+                                <span class="block text-[9px] text-slate-500 text-right mt-1.5">14:00</span>
+                            </div>
+                        </div>
+
+                        <!-- Botões Rápidos de Prompt (No lugar do Teclado) -->
+                        <div class="bg-slate-900 p-3 border-t border-slate-800 space-y-2">
+                            <span class="text-[10px] text-slate-500 font-bold block">ENVIAR PERGUNTA RÁPIDA:</span>
+                            <div class="grid grid-cols-2 gap-2">
+                                <button onclick="simulateUserMessage('Qual o gargalo hoje?', 'gargalo')" class="bg-slate-800 hover:bg-slate-750 text-slate-100 text-[11px] font-bold py-2 px-3 rounded-xl transition-all border border-slate-700 text-left truncate">
+                                    "Qual o gargalo hoje?"
+                                </button>
+                                <button onclick="simulateUserMessage('Qual o lucro acumulado?', 'lucro')" class="bg-slate-800 hover:bg-slate-750 text-slate-100 text-[11px] font-bold py-2 px-3 rounded-xl transition-all border border-slate-700 text-left truncate">
+                                    "Qual o lucro acumulado?"
+                                </button>
+                            </div>
+                            <div class="flex gap-2">
+                                <button onclick="simulateUserMessage('Enviar Briefing Matinal', 'briefing')" class="w-full bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 text-[11px] font-bold py-2 px-3 rounded-xl transition-all border border-emerald-500/20">
+                                    <i class="fa-solid fa-sun mr-1"></i> Resumo das 7h
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ================= ABA: ROTEIRO DE PITCH DA APRESENTAÇÃO ================= -->
+            <section id="tab-roteiro" class="hidden space-y-6">
+                <div>
+                    <h3 class="text-2xl font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-file-lines text-brand-cyan"></i>
+                        Guia de Pitch do Projeto
+                    </h3>
+                    <p class="text-sm text-slate-400">Roteiro estruturado para os 10 minutos de apresentação perante a banca avaliadora.</p>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    
+                    <!-- Navegador dos 5 Slides -->
+                    <div class="space-y-3 lg:col-span-1">
+                        <button onclick="showSlideDetail(1)" id="slide-btn-1" class="w-full bg-slate-900 hover:bg-slate-850 p-4 rounded-xl border border-brand-cyan text-left transition-all block">
+                            <span class="text-[10px] text-brand-cyan font-bold block uppercase">SLIDE 1 - (2 min)</span>
+                            <span class="text-sm font-bold text-white block mt-1">O Problema e a Dor</span>
+                        </button>
+                        <button onclick="showSlideDetail(2)" id="slide-btn-2" class="w-full bg-slate-900 hover:bg-slate-850 p-4 rounded-xl border border-slate-850 text-left transition-all block">
+                            <span class="text-[10px] text-slate-500 font-bold block uppercase">SLIDE 2 - (2 min)</span>
+                            <span class="text-sm font-bold text-white block mt-1">A Solução e Valor</span>
+                        </button>
+                        <button onclick="showSlideDetail(3)" id="slide-btn-3" class="w-full bg-slate-900 hover:bg-slate-850 p-4 rounded-xl border border-slate-850 text-left transition-all block">
+                            <span class="text-[10px] text-slate-500 font-bold block uppercase">SLIDE 3 - (2 min)</span>
+                            <span class="text-sm font-bold text-white block mt-1">Viabilidade & Custos</span>
+                        </button>
+                        <button onclick="showSlideDetail(4)" id="slide-btn-4" class="w-full bg-slate-900 hover:bg-slate-850 p-4 rounded-xl border border-slate-850 text-left transition-all block">
+                            <span class="text-[10px] text-slate-500 font-bold block uppercase">SLIDE 4 - (2 min)</span>
+                            <span class="text-sm font-bold text-white block mt-1">Inovação e Mercado</span>
+                        </button>
+                        <button onclick="showSlideDetail(5)" id="slide-btn-5" class="w-full bg-slate-900 hover:bg-slate-850 p-4 rounded-xl border border-slate-850 text-left transition-all block">
+                            <span class="text-[10px] text-slate-500 font-bold block uppercase">SLIDE 5 - (2 min)</span>
+                            <span class="text-sm font-bold text-white block mt-1">Adequação & Fechamento</span>
+                        </button>
+                    </div>
+
+                    <!-- Detalhes do Slide Selecionado -->
+                    <div class="bg-brand-card border border-slate-800 p-6 rounded-2xl lg:col-span-2 space-y-6" id="slide-content-area">
+                        <!-- Conteúdo será injetado pelo JavaScript -->
+                        <div class="space-y-4">
+                            <div class="flex justify-between items-center border-b border-slate-800 pb-4">
+                                <div>
+                                    <span class="text-xs text-brand-cyan uppercase tracking-widest font-black">Membros FluxoTech</span>
+                                    <h4 class="text-lg font-bold text-white mt-1">Slide 1: Voo Cego da Indústria</h4>
+                                </div>
+                                <span class="bg-slate-800 text-slate-400 text-xs px-3 py-1 rounded-full font-bold">2 Minutos</span>
+                            </div>
+
+                            <div class="bg-slate-900 p-4 rounded-xl border border-slate-800 text-xs text-slate-400">
+                                <strong class="text-white block mb-1">Slide Sugerido:</strong>
+                                Imagem impactante de um piloto voando com os vidros cobertos por névoa ("Voo Cego").
+                            </div>
+
+                            <div class="space-y-3">
+                                <h5 class="text-xs font-black text-brand-accent uppercase tracking-widest">Roteiro Recomendado (Foco da Banca)</h5>
+                                <p class="text-sm text-slate-300 leading-relaxed">
+                                    "Imaginem vocês estarem no comando de uma aeronave comercial, mas o painel de instrumentos só mostra a altitude e a velocidade que vocês estavam voando... há duas semanas. Alguém aqui se sentiria seguro? É exatamente nesse cenário de 'voo cego' que grande parte da indústria têxtil toma decisões hoje."
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- NOTIFICAÇÃO REAL-TIME TOAST -->
+    <div id="toast-notif" class="fixed bottom-6 right-6 max-w-sm bg-red-950 border-l-4 border-red-500 rounded-xl p-4 shadow-2xl flex gap-3 text-slate-100 z-50 transform translate-y-28 opacity-0 transition-all duration-300">
+        <div class="text-red-400 text-lg"><i class="fa-solid fa-triangle-exclamation"></i></div>
+        <div>
+            <div class="text-xs font-black text-red-400 uppercase tracking-widest">Alerta Crítico ADM</div>
+            <p class="text-xs mt-1 text-slate-300">Horas extras excessivas na Injetora 2 dispararam um alerta automático de estresse operacional às 14h.</p>
+        </div>
+        <button onclick="closeToast()" class="text-slate-500 hover:text-white text-sm focus:outline-none">&times;</button>
+    </div>
+
+    <!-- JAVASCRIPT: LOGICA INTERATIVA DO PAINEL -->
+    <script>
+        // Dados de State
+        let isAlertActive = false;
+
+        // Troca de Abas
+        function switchTab(tabId) {
+            // Abas Desktop
+            const tabs = ['dashboard', 'canvas', 'whatsapp', 'roteiro'];
+            tabs.forEach(tab => {
+                document.getElementById(`tab-${tab}`).classList.add('hidden');
+                document.getElementById(`btn-${tab}`).classList.remove('bg-brand-card', 'text-brand-accent', 'border-l-4', 'border-brand-accent');
+                document.getElementById(`btn-${tab}`).classList.add('text-slate-400');
+                
+                // Botão Mobile
+                document.getElementById(`m-btn-${tab}`).classList.remove('bg-brand-card', 'text-brand-accent');
+                document.getElementById(`m-btn-${tab}`).classList.add('text-slate-400');
+            });
+
+            // Ativa o alvo
+            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+            
+            // Ativa os botões Desktop/Mobile correspondentes
+            document.getElementById(`btn-${tabId}`).classList.add('bg-brand-card', 'text-brand-accent', 'border-l-4', 'border-brand-accent');
+            document.getElementById(`m-btn-${tabId}`).classList.add('bg-brand-card', 'text-brand-accent');
+        }
+
+        // Simulação do Briefing Matinal
+        function triggerBriefing() {
+            // Mudar para Aba WhatsApp para melhor visualização do efeito
+            switchTab('whatsapp');
+
+            // Envia o prompt do usuário
+            const chat = document.getElementById('whatsapp-chat-container');
+            const now = new Date();
+            const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+            // Resposta Automatizada de Briefing
+            setTimeout(() => {
+                const answerDiv = document.createElement('div');
+                answerDiv.className = "max-w-[85%] bg-slate-900 rounded-2xl rounded-tl-none p-4 text-xs text-slate-100 leading-relaxed self-start border-l-4 border-brand-accent";
+                answerDiv.innerHTML = `
+                    <span class="text-brand-accent font-black text-[10px] block mb-1">☀️ BRIEFING MATINAL ADM (07h00)</span>
+                    Olá, Gestor! O faturamento acumulado fechou em **R$ 45.200** (92.4% da meta diária).<br><br>
+                    **Análise dos Insumos:**<br>
+                    • Margem líquida saudável em 15.6%.<br>
+                    • Setor de tecelagem operando em capacidade ideal de 450m/hr.<br>
+                    • Injetora 1 e Injetora 2 operando sem registros de sobrecarga.<br><br>
+                    *Tenha um ótimo dia de trabalho!* 🚀
+                    <span class="block text-[9px] text-slate-500 text-right mt-1.5">${timeStr}</span>
+                `;
+                chat.appendChild(answerDiv);
+                chat.scrollTop = chat.scrollHeight;
+            }, 600);
+        }
+
+        // Simulação do Alerta Proativo às 14h
+        function triggerAlertSimulation() {
+            isAlertActive = true;
+            
+            // Alterar Indicador Superior
+            document.getElementById('simulation-status').innerText = "ALERTA CRÍTICO: Sobrecarga às 14:00";
+            document.getElementById('simulation-status').className = "text-red-400 font-bold";
+
+            // Modificar os KPIs do Dashboard
+            document.getElementById('kpi-custos').innerText = "R$ 44.900";
+            document.getElementById('kpi-custos-sub').innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Limite excedido na Produção!';
+            document.getElementById('kpi-custos-sub').className = "text-xs text-red-400 flex items-center gap-1 mt-2 font-bold";
+            document.getElementById('card-custos').className = "bg-brand-card border border-red-500/40 rounded-2xl p-5 hover:border-red-500 transition-all relative overflow-hidden group neon-glow-danger pulse-active";
+
+            document.getElementById('kpi-meta').innerText = "85.1%";
+            document.getElementById('card-meta').className = "bg-brand-card border border-amber-500/30 rounded-2xl p-5 hover:border-slate-700 transition-all relative overflow-hidden group";
+            document.getElementById('progress-meta').style.width = "85.1%";
+            document.getElementById('progress-meta').className = "bg-amber-500 h-full transition-all duration-500";
+
+            // Alterar linha da Injetora 2
+            document.getElementById('row-injetora2').className = "bg-red-500/10 p-4 rounded-xl border border-red-500/30 flex flex-wrap justify-between items-center gap-4 transition-all duration-300";
+            document.getElementById('icon-injetora2').className = "bg-red-500/20 text-red-400 p-2.5 rounded-lg text-lg";
+            document.getElementById('desc-injetora2').innerHTML = 'Eficiência de Produção: <strong class="text-red-400">72.1%</strong> (Estresse de custo por Hora Extra)';
+            document.getElementById('meta-injetora2').innerText = "90 peças/hr (Sobrecarga)";
+            document.getElementById('badge-injetora2').className = "bg-red-500/20 text-red-400 border border-red-500/30 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full animate-pulse";
+            document.getElementById('badge-injetora2').innerText = "Limite Rompido";
+
+            // Atualizar o gráfico de barras
+            document.getElementById('bar-chart-5').className = "w-full bg-red-500 rounded-t-sm h-[95%] transition-all";
+
+            // Adicionar Notificação do Alerta na Linha do Tempo
+            const logs = document.getElementById('log-container');
+            const alertLog = document.createElement('div');
+            alertLog.className = "flex gap-3 text-xs text-red-400";
+            alertLog.innerHTML = `
+                <div class="bg-red-500/10 h-6 w-6 rounded-full flex items-center justify-center text-[10px] text-red-400 shrink-0">14h</div>
+                <div>
+                    <p class="font-semibold">⚠️ Limite Excedido - Custos Variáveis</p>
+                    <p class="text-slate-500">Injetora 2 ultrapassou limite diário por horas extras.</p>
+                </div>
+            `;
+            logs.insertBefore(alertLog, logs.firstChild);
+
+            // Mostrar Alerta Toast na Tela
+            const toast = document.getElementById('toast-notif');
+            toast.className = "fixed bottom-6 right-6 max-w-sm bg-red-950 border-l-4 border-red-500 rounded-xl p-4 shadow-2xl flex gap-3 text-slate-100 z-50 transform translate-y-0 opacity-100 transition-all duration-300";
+
+            // Enviar alerta imediato no Simulador do WhatsApp
+            const chat = document.getElementById('whatsapp-chat-container');
+            const now = new Date();
+            const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+            
+            const alertMsg = document.createElement('div');
+            alertMsg.className = "max-w-[85%] bg-red-950 border border-red-800 text-red-200 rounded-2xl rounded-tl-none p-3 text-xs leading-relaxed self-start";
+            alertMsg.innerHTML = `
+                <span class="text-red-400 font-bold block text-[10px] uppercase mb-1">🚨 ALERTA DE CUSTO CRÍTICO (14:00)</span>
+                Atenção, Limite de custos variáveis excedido na produção da Criare!<br><br>
+                **Gargalo Identificado:** A **Injetora 2** registrou sobrecarga por horas extras operando com margem estressada no turno da tarde.
+                <span class="block text-[9px] text-red-500 text-right mt-1">${timeStr}</span>
+            `;
+            chat.appendChild(alertMsg);
+            chat.scrollTop = chat.scrollHeight;
+        }
+
+        // Fecha o toast de notificação
+        function closeToast() {
+            const toast = document.getElementById('toast-notif');
+            toast.className = "fixed bottom-6 right-6 max-w-sm bg-red-950 border-l-4 border-red-500 rounded-xl p-4 shadow-2xl flex gap-3 text-slate-100 z-50 transform translate-y-28 opacity-0 transition-all duration-300";
+        }
+
+        // Resetar toda a simulação
+        function resetSimulation() {
+            isAlertActive = false;
+            
+            // Reset do Status Superior
+            document.getElementById('simulation-status').innerText = "Operação Normal (Criare S/A)";
+            document.getElementById('simulation-status').className = "text-brand-accent font-bold";
+
+            // Reset de KPIs
+            document.getElementById('kpi-custos').innerText = "R$ 38.150";
+            document.getElementById('kpi-custos-sub').innerHTML = '<i class="fa-solid fa-circle-check"></i> Dentro da meta projetada';
+            document.getElementById('kpi-custos-sub').className = "text-xs text-emerald-400 flex items-center gap-1 mt-2";
+            document.getElementById('card-custos').className = "bg-brand-card border border-slate-800 rounded-2xl p-5 hover:border-slate-700 transition-all relative overflow-hidden group";
+
+            document.getElementById('kpi-meta').innerText = "92.4%";
+            document.getElementById('card-meta').className = "bg-brand-card border border-slate-800 rounded-2xl p-5 hover:border-slate-700 transition-all relative overflow-hidden group";
+            document.getElementById('progress-meta').style.width = "92.4%";
+            document.getElementById('progress-meta').className = "bg-brand-accent h-full transition-all duration-500";
+
+            // Reset da linha Injetora 2
+            document.getElementById('row-injetora2').className = "bg-slate-900/60 p-4 rounded-xl border border-slate-800 flex flex-wrap justify-between items-center gap-4 transition-all duration-300";
+            document.getElementById('icon-injetora2').className = "bg-emerald-500/10 text-emerald-400 p-2.5 rounded-lg text-lg";
+            document.getElementById('desc-injetora2').innerHTML = 'Eficiência Operacional Global (OEE): <strong class="text-emerald-400">88.5%</strong>';
+            document.getElementById('meta-injetora2').innerText = "115 peças/hr";
+            document.getElementById('badge-injetora2').className = "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full";
+            document.getElementById('badge-injetora2').innerText = "Operação OK";
+
+            // Reset do gráfico de barras
+            document.getElementById('bar-chart-5').className = "w-full bg-slate-800 rounded-t-sm h-[90%] transition-all";
+
+            // Limpa o chat e reconstrói o welcome
+            const chat = document.getElementById('whatsapp-chat-container');
+            chat.innerHTML = `
+                <div class="max-w-[85%] bg-slate-900 rounded-2xl rounded-tl-none p-3 text-xs text-slate-100 leading-relaxed">
+                    Olá, Gestor da Criare! 👋 Eu sou o seu **Agente Diário de Metas (ADM)**.<br><br>
+                    Estou ativo monitorando as métricas e os insumos do dia. Use os botões no rodapé ou envie mensagens rápidas para avaliar custos.
+                    <span class="block text-[9px] text-slate-500 text-right mt-1.5">14:00</span>
+                </div>
+            `;
+
+            // Reset de logs
+            const logs = document.getElementById('log-container');
+            logs.innerHTML = `
+                <div class="flex gap-3 text-xs">
+                    <div class="bg-slate-800 h-6 w-6 rounded-full flex items-center justify-center text-[10px] text-brand-cyan shrink-0">07h</div>
+                    <div>
+                        <p class="font-semibold">Briefing Diário Enviado</p>
+                        <p class="text-slate-500">Relatório matinal encaminhado para o WhatsApp de 4 gestores.</p>
+                    </div>
+                </div>
+                <div class="flex gap-3 text-xs">
+                    <div class="bg-slate-800 h-6 w-6 rounded-full flex items-center justify-center text-[10px] text-emerald-400 shrink-0">10h</div>
+                    <div>
+                        <p class="font-semibold">Sincronização Concluída</p>
+                        <p class="text-slate-500">Planilhas do ERP integradas ao Hub Google Sheets sem erros.</p>
+                    </div>
+                </div>
+                <div class="flex gap-3 text-xs">
+                    <div class="bg-slate-800 h-6 w-6 rounded-full flex items-center justify-center text-[10px] text-slate-400 shrink-0">12h</div>
+                    <div>
+                        <p class="font-semibold">Análise Semanal Gerada</p>
+                        <p class="text-slate-500">Insight opcional consolidado: "Custos de matéria-prima estáveis".</p>
+                    </div>
+                </div>
+            `;
+
+            closeToast();
+        }
+
+        // Simulação do Chat do WhatsApp
+        function simulateUserMessage(text, type) {
+            const chat = document.getElementById('whatsapp-chat-container');
+            const now = new Date();
+            const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+            // Mensagem do usuário
+            const userDiv = document.createElement('div');
+            userDiv.className = "max-w-[85%] bg-brand-accent/20 border border-brand-accent/20 rounded-2xl rounded-tr-none p-3 text-xs text-slate-100 leading-relaxed self-end";
+            userDiv.innerHTML = `
+                ${text}
+                <span class="block text-[9px] text-brand-accent/60 text-right mt-1">${timeStr}</span>
+            `;
+            chat.appendChild(userDiv);
+            chat.scrollTop = chat.scrollHeight;
+
+            // IA respondendo
+            setTimeout(() => {
+                const aiDiv = document.createElement('div');
+                aiDiv.className = "max-w-[85%] bg-slate-900 rounded-2xl rounded-tl-none p-3 text-xs text-slate-100 leading-relaxed self-start";
+                
+                if (type === 'gargalo') {
+                    if (isAlertActive) {
+                        aiDiv.innerHTML = `
+                            Identifiquei que o principal gargalo atual é o excesso de horas extras na **Injetora 2** (turno da tarde), o que gerou um custo operacional diário de **R$ 44.900**, superando a margem projetada. O restante da operação está fluindo perfeitamente.
+                            <span class="block text-[9px] text-slate-500 text-right mt-1.5">${timeStr}</span>
+                        `;
+                    } else {
+                        aiDiv.innerHTML = `
+                            Toda a linha operacional está com eficiência estável hoje. Não há alertas de gargalos graves reportados até agora. O maior custo de ontem foi contido com sucesso!
+                            <span class="block text-[9px] text-slate-500 text-right mt-1.5">${timeStr}</span>
+                        `;
+                    }
+                } else if (type === 'lucro') {
+                    if (isAlertActive) {
+                        aiDiv.innerHTML = `
+                            O faturamento atual está em R$ 45.200, com custo estressado em R$ 44.900, resultando em um lucro operacional comprimido de **R$ 300** nas últimas horas devido às horas extras na Injetora 2.
+                            <span class="block text-[9px] text-slate-500 text-right mt-1.5">${timeStr}</span>
+                        `;
+                    } else {
+                        aiDiv.innerHTML = `
+                            O lucro operacional estimado acumulado hoje é de **R$ 7.050**, mantendo uma excelente margem operacional líquida média estável de **15.6%**.
+                            <span class="block text-[9px] text-slate-500 text-right mt-1.5">${timeStr}</span>
+                        `;
+                    }
+                } else if (type === 'briefing') {
+                    aiDiv.innerHTML = `
+                        <span class="text-brand-accent font-bold text-[10px] block mb-1">☀️ BRIEFING OPERACIONAL ADM</span>
+                        • **Faturamento:** R$ 45.200 (Meta estável)<br>
+                        • **Desvios de Custo:** Sem anomalias na manhã de hoje.<br>
+                        • **OEE Médio:** 91.5% entre todas as injetoras e tecelagem.
+                        <span class="block text-[9px] text-slate-500 text-right mt-1.5">${timeStr}</span>
+                    `;
+                }
+
+                chat.appendChild(aiDiv);
+                chat.scrollTop = chat.scrollHeight;
+            }, 800);
+        }
+
+        // Roteiro / Visualizador de Slides
+        const slides = {
+            1: {
+                title: "Slide 1: O Problema e a Dor",
+                time: "2 minutos de fala",
+                background: "Imagem impactante de um piloto voando com os vidros cobertos por névoa ('Voo Cego').",
+                content: "Boa tarde à banca avaliadora, aos representantes do SENAI, da FUNCAP e, em especial, à equipe da Criare.<br><br>Imaginem vocês estarem no comando de uma aeronave comercial, mas o painel de instrumentos só mostra a altitude e a velocidade que vocês estavam voando... há duas semanas. Alguém aqui se sentiria seguro? É exatamente nesse cenário de 'voo cego' que grande parte da indústria têxtil toma decisões hoje."
+            },
+            2: {
+                title: "Slide 2: A Solução e Valor",
+                time: "2 minutos de fala",
+                background: "Logo do ADM + Mockup de um smartphone com o WhatsApp aberto contendo alertas de erros.",
+                content: "Para resolver essa dor, nós criamos o ADM: O Agente Diário de Metas.<br><br>Qual é o erro da maioria das soluções de software hoje? Elas exigem que o gestor pare o que está fazendo, abra o computador, faça login em um painel complexo e tente interpretar gráficos. O ADM inverte essa lógica. Ele é um Assistente Financeiro-Operacional Inteligente que mora onde o gestor já está o dia todo: no WhatsApp ou no Microsoft Teams."
+            },
+            3: {
+                title: "Slide 3: Viabilidade & Custos",
+                time: "2 minutos de fala",
+                background: "Desenho da Arquitetura: Google Sheets -> n8n (Orquestrador) -> Gemini (IA) -> WhatsApp.",
+                content: "Quando falamos de Inteligência Artificial, muitos pensam em projetos de milhões de reais e anos de desenvolvimento. O grande diferencial do ADM é a sua viabilidade técnica imediata. Nós desenhamos uma Prova de Conceito (POC) baseada em ferramentas Low-Code e APIs já consolidadas.<br><br>Custo mensal total estimado entre R$ 110 e R$ 230 mensais."
+            },
+            4: {
+                title: "Slide 4: Inovação e Mercado",
+                time: "2 minutos de fala",
+                background: "Tabela comparativa de concorrência: ERP tradicional vs. BI (PowerBI) vs. ADM.",
+                content: "A inovação do ADM é o que chamamos de inovação incremental de alto impacto com efeito disruptivo. Nós pegamos a IA, que já existe, e a aplicamos de forma totalmente focada e autônoma na rotina do chão de fábrica e da gestão. O ADM não espera você perguntar, ele age.<br><br>Temos um mercado de 300 mil indústrias de pequeno e médio porte em potencial para o formato SaaS."
+            },
+            5: {
+                title: "Slide 5: Adequação & Fechamento",
+                time: "2 minutos de fala",
+                background: "Logotipo FluxoTech + Logo Criare com a foto dos 5 integrantes da equipe.",
+                content: "O ADM atende perfeitamente a todos os requisitos do desafio da Criare. Ele foca em processos produtivos monitorando gargalos em tempo real, aumenta a eficiência operacional cortando análises manuais e reduz custos vigiando metas financeiras diárias.<br><br>A Criare está pronta para deixar de pilotar às cegas. E com o ADM, a FUNCAP e o SENAI, nós entregamos as ferramentas perfeitas para isso. Muito obrigado!"
+            }
+        };
+
+        function showSlideDetail(id) {
+            // Remove bordas ativas
+            for(let i = 1; i <= 5; i++) {
+                document.getElementById(`slide-btn-${i}`).classList.remove('border-brand-cyan');
+                document.getElementById(`slide-btn-${i}`).classList.add('border-slate-850');
+            }
+
+            // Ativa o botão correspondente
+            document.getElementById(`slide-btn-${id}`).classList.remove('border-slate-850');
+            document.getElementById(`slide-btn-${id}`).classList.add('border-brand-cyan');
+
+            // Atualiza conteúdo lateral
+            const slide = slides[id];
+            const contentArea = document.getElementById('slide-content-area');
+            contentArea.innerHTML = `
+                <div class="space-y-4">
+                    <div class="flex justify-between items-center border-b border-slate-800 pb-4">
+                        <div>
+                            <span class="text-xs text-brand-cyan uppercase tracking-widest font-black">Suporte ao Pitch</span>
+                            <h4 class="text-lg font-bold text-white mt-1">${slide.title}</h4>
+                        </div>
+                        <span class="bg-slate-800 text-slate-400 text-xs px-3 py-1 rounded-full font-bold">${slide.time}</span>
+                    </div>
+
+                    <div class="bg-slate-900 p-4 rounded-xl border border-slate-800 text-xs text-slate-400">
+                        <strong class="text-white block mb-1">Slide Sugerido:</strong>
+                        ${slide.background}
+                    </div>
+
+                    <div class="space-y-3">
+                        <h5 class="text-xs font-black text-brand-accent uppercase tracking-widest">Roteiro Recomendado (Foco da Banca)</h5>
+                        <p class="text-sm text-slate-300 leading-relaxed">
+                            "${slide.content}"
+                        </p>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Inicializar com o slide 1 selecionado
+        window.onload = function() {
+            showSlideDetail(1);
+        };
+    </script>
+</body>
+</html>
